@@ -1,9 +1,26 @@
-#include "stdafx.h"
+#include <netinet/in.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
+#define SOCKET int
 #define BUFFERSIZE 2048
 #define LINEBUFFER 128
-
 #define closesocket(x) close(x)
+
+typedef enum{
+	false, true
+}bool;
+
+typedef unsigned char	BYTE;
+typedef unsigned char	UINT8;
+typedef unsigned short	UINT16;
+typedef unsigned int	UINT32;
+typedef unsigned		UINT;
 
 char IBF[BUFFERSIZE];
 char OBF[BUFFERSIZE];
@@ -18,7 +35,7 @@ static char ACCP[] = "Accept: application/sdp\r\n";
 static char AUTH[] = "Authorization: Basic %s\r\n";
 
 static char Base64Table[] =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
 typedef enum{
 	RC_DESCRIBE,
@@ -65,8 +82,7 @@ void encode_base64(char* out, char* str){
 		encode_base64(out+4,str+3);
 }
 
-SOCKET tcp_bind(char* src_ip, int src_port)
-{	
+SOCKET tcp_bind(char* src_ip, int src_port){	
 	SOCKET sockfd;
 	struct sockaddr_in mysock;
 	const int on = 1;
@@ -92,8 +108,7 @@ SOCKET tcp_bind(char* src_ip, int src_port)
 	return sockfd;
 }
 
-SOCKET tcp_connect(char* src_ip, int src_port, char* dest_ip, int dest_port)
-{
+SOCKET tcp_connect(char* src_ip, int src_port, char* dest_ip, int dest_port){
 	SOCKET sockfd;
 	struct sockaddr_in remote_sock;
 
@@ -104,8 +119,7 @@ SOCKET tcp_connect(char* src_ip, int src_port, char* dest_ip, int dest_port)
 	remote_sock.sin_addr.s_addr = inet_addr(dest_ip);//140.124.13.3
 	remote_sock.sin_port = htons(dest_port);
 	
-	if(-1 == connect(sockfd, (struct sockaddr *) &remote_sock,
-			sizeof(remote_sock))){
+	if(-1 == connect(sockfd, (struct sockaddr *) &remote_sock, sizeof(remote_sock))){
 		closesocket(sockfd);
 		return (-1);
 	}
@@ -186,7 +200,7 @@ bool prepare_rtsp_request(COMMAND cmd, char* s_ip, int s_port, char* codec, char
 	pos+=sprintf(pos, UA);
 	pos+=sprintf(pos, SESN, 12345678);
 	char out[128]={0};
-	encode_base64(out, "roog:root");
+	encode_base64(out, "root:root");
 	pos+=sprintf(pos,AUTH, out);
 
 	pos+=sprintf(pos,"\r\n");
@@ -195,8 +209,7 @@ bool prepare_rtsp_request(COMMAND cmd, char* s_ip, int s_port, char* codec, char
 
 }
 
-int main()
-{
+int main(){
 	//*****************connect to server********************
 	SOCKET sockfd;
 	sockfd = tcp_connect(NULL, 0, "10.2.0.160", 80);
@@ -205,8 +218,7 @@ int main()
 		fprintf(stderr, "Error with client connecting to server\n");
 		closesocket(sockfd);
 		exit(0);
-	}
-	else
+	}else
 		fprintf(stdout, "Client connect to server successfully !!\n");
 
 	//*****************prepare and send request*****************
@@ -224,26 +236,23 @@ int main()
 	bool bRUN = true;
 	int  pos=0;
 	char *buffer = IBF;
-
 	fd_set fds;
-    struct timeval tmo;
+	struct timeval tmo;
 
-    tmo.tv_sec = 2;
-    tmo.tv_usec = 0;
+	tmo.tv_sec = 2;
+	tmo.tv_usec = 0;
 
-	while(bRUN){
+	while(bRUN){		
 		FD_ZERO(&fds) ;
-    	FD_SET(sockfd, &fds);
-    	int ret = select(sockfd+1, &fds, NULL, NULL, &tmo);
-    	if(ret > 0){
+		FD_SET(sockfd, &fds);
+		int ret = select(sockfd+1, &fds, NULL, NULL, &tmo);
+		if(ret > 0){
 			int len = recv(sockfd, buffer, BUFFERSIZE, 0);
-			if(len>0)
-			{
+			if(len>0){
 				printf("%s", buffer);
-			}
-			else
+			}else
 				bRUN=false;
-    	}
+    		}
 	}
 
 	//close socket
